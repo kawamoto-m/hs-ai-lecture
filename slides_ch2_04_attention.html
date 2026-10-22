@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第4回 LLMの技術を学ぶ③ 投影用スライド</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#14213d; --sub:#5b6478; --bg:#f6f4ee; --card:#ffffff; --line:#e1dccf;
+  --it:#e8590c; --itbg:#fff0e6; --q:#1c7ed6; --qbg:#e7f1fc; --k:#2b8a3e; --kbg:#e6f4ea;
+  --v:#7048e8; --vbg:#f0ebff; --hl:#ffe066; --hlbg:#fff7cc; --ok:#2b8a3e; --ng:#c92a2a;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#20232a;overflow:hidden}
+body{font-family:"Noto Sans JP","Hiragino Kaku Gothic ProN","Yu Gothic UI","Meiryo",sans-serif;color:var(--ink)}
+#viewport{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+#stage{width:1280px;height:720px;position:relative;background:var(--bg);transform-origin:center center;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.4)}
+.slide{position:absolute;inset:0;padding:48px 72px 56px;display:none;flex-direction:column}
+.slide.active{display:flex;animation:sIn .35s ease}
+@keyframes sIn{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:none}}
+.kicker{font-size:22px;font-weight:700;color:var(--it);letter-spacing:.06em;margin-bottom:6px}
+h2{font-size:44px;font-weight:900;line-height:1.25;margin-bottom:26px}
+h2 small{font-size:26px;font-weight:500;color:var(--sub);margin-left:10px}
+p,li{font-size:28px;line-height:1.6}
+.sub{color:var(--sub)}
+b.it,.itc{color:var(--it)}
+.foot{position:absolute;left:72px;bottom:18px;font-size:16px;color:#a39e90}
+[data-f]{opacity:0;transform:translateY(14px);transition:opacity .45s ease,transform .45s ease}
+[data-f].on{opacity:1;transform:none}
+.card{background:var(--card);border:2px solid var(--line);border-radius:18px;padding:22px 26px}
+.row{display:flex;gap:24px}
+.col{flex:1;min-width:0}
+.center{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;flex:1}
+.big{font-size:40px;font-weight:700;line-height:1.5}
+.point{background:var(--hlbg);border-left:8px solid var(--hl);border-radius:10px;padding:16px 22px;font-size:30px;font-weight:700;line-height:1.5}
+.nb{position:absolute;right:56px;top:40px;background:var(--ink);color:#fff;font-size:20px;font-weight:700;padding:8px 18px;border-radius:999px}
+.note{font-size:20px;color:var(--sub);line-height:1.5}
+
+/* word chips */
+.sent{font-size:31px;line-height:1;white-space:nowrap}
+.w{display:inline-block;padding:8px 12px;margin:0 4px 0 0;border-radius:12px;background:#fff;border:2px solid var(--line);font-weight:500;transition:all .35s;position:relative}
+.w.it{border-color:var(--it);color:var(--it);font-weight:900;background:var(--itbg)}
+.w.hl{background:var(--hl);border-color:#f2c200}
+.w.dim{opacity:.25}
+.w.tgt{border-color:var(--it);box-shadow:0 0 0 4px rgba(232,89,12,.25)}
+.w .tag{position:absolute;left:50%;top:100%;transform:translate(-50%,8px);font-size:18px;font-weight:700;white-space:nowrap;color:var(--sub)}
+.arcwrap{position:relative;padding-top:130px}
+.arcwrap svg{position:absolute;left:0;top:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.arcwrap.short{padding-top:90px}
+
+/* chapter divider */
+.divider{background:var(--ink);color:#fff}
+.divider .num{font-size:160px;font-weight:900;color:var(--it);line-height:1}
+.divider h1{font-size:60px;font-weight:900;margin:12px 0 18px}
+.divider p{color:#c9cfdb;font-size:28px}
+
+/* options */
+.opts{display:flex;gap:18px;flex-wrap:wrap}
+.opt{font-size:30px;font-weight:700;padding:12px 26px;border-radius:14px;background:#fff;border:3px solid var(--line);transition:all .35s}
+.opt.ok{border-color:var(--ok);background:#e6f4ea;color:var(--ok)}
+.opt.ok::after{content:" ◯";}
+
+/* bars */
+.bars{display:flex;flex-direction:column;gap:8px}
+.bar{display:flex;align-items:center;gap:12px;font-size:24px}
+.bar .bl{width:170px;text-align:right;font-weight:500;white-space:nowrap}
+.bar .bt{flex:1;height:30px;background:#ece8dd;border-radius:8px;overflow:hidden}
+.bar .bt i{display:block;height:100%;width:0;border-radius:8px;transition:width .9s cubic-bezier(.2,.8,.2,1)}
+.bar .bv{width:80px;font-weight:700;font-variant-numeric:tabular-nums}
+.bar.top .bl{color:var(--it);font-weight:900}
+
+/* vectors / heat */
+.vec{display:inline-flex;gap:4px;vertical-align:middle}
+.vec span{display:inline-flex;align-items:center;justify-content:center;min-width:52px;height:44px;border-radius:8px;font-size:22px;font-weight:700;border:1px solid #ddd6c4;font-variant-numeric:tabular-nums;transition:background .6s}
+table.heat{border-collapse:separate;border-spacing:4px;font-size:20px}
+table.heat th{font-weight:700;font-size:17px;line-height:1.25;color:var(--sub);width:92px;vertical-align:bottom;padding-bottom:4px}
+table.heat th.rowh{width:150px;text-align:right;font-size:24px;color:var(--ink);padding-right:8px}
+table.heat td{width:92px;height:52px;text-align:center;border-radius:8px;font-weight:700;font-size:22px;border:1px solid #e3dccb;transition:all .4s}
+table.heat tr.it th.rowh{color:var(--it)}
+table.heat tr.it td{outline:3px solid var(--it)}
+table.heat tr.dim{opacity:.3}
+.grp{font-size:18px;font-weight:700;text-align:center;border-radius:8px;padding:4px 0}
+
+/* toggle */
+.tog{display:inline-flex;background:#e8e3d6;border-radius:999px;padding:4px;gap:4px}
+.tog button{font:inherit;font-size:22px;font-weight:700;border:0;background:transparent;padding:8px 22px;border-radius:999px;cursor:pointer;color:var(--sub)}
+.tog button.on{background:var(--ink);color:#fff}
+button.act{font:inherit;font-size:22px;font-weight:700;border:2px solid var(--ink);background:#fff;padding:8px 20px;border-radius:12px;cursor:pointer}
+select{font:inherit;font-size:26px;font-weight:700;padding:6px 10px;border-radius:12px;border:2px solid var(--line);background:#fff;color:var(--ink)}
+
+/* QKV cards */
+.qkv{flex:1;border-radius:18px;padding:22px 24px;border:3px solid}
+.qkv h3{font-size:32px;margin-bottom:6px}
+.qkv .en{font-size:20px;font-weight:700;opacity:.8}
+.qkv p{font-size:24px}
+.qkv .ex{margin-top:14px;font-size:24px;font-weight:700;background:#fff;border-radius:12px;padding:10px 14px}
+
+/* flow */
+.flow{display:flex;flex-direction:column;gap:12px;width:700px}
+.fstep{display:flex;align-items:center;gap:16px;background:#fff;border:3px solid var(--line);border-radius:16px;padding:14px 20px;transition:all .4s}
+.fstep .lab{font-size:20px;font-weight:900;background:var(--ink);color:#fff;border-radius:8px;padding:4px 10px;white-space:nowrap}
+.fstep .tx{font-size:24px;font-weight:700;white-space:nowrap}
+.fstep .pt{margin-left:auto;font-size:20px;color:var(--sub);white-space:nowrap}
+.fstep.lit{border-color:var(--it);background:var(--itbg);transform:scale(1.03)}
+.parts{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.part{display:flex;gap:16px;align-items:center;background:#fff;border:2px solid var(--line);border-radius:16px;padding:18px 22px}
+.part .n{font-size:44px;font-weight:900;color:var(--it);width:56px;text-align:center}
+.part .t{font-size:28px;font-weight:700;line-height:1.35}
+.part .r{font-size:20px;color:var(--sub);font-weight:500}
+
+/* mini feature bars */
+.fb{display:flex;gap:14px;align-items:flex-end;height:140px;padding:0 6px;border-bottom:3px solid var(--ink)}
+.fb .c{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;width:62px}
+.fb .c i{display:block;width:46px;border-radius:8px 8px 0 0;transition:height .9s cubic-bezier(.2,.8,.2,1);background:var(--q)}
+.fb .c b{font-size:20px;margin-bottom:4px;font-variant-numeric:tabular-nums}
+.fbl{display:flex;gap:14px;padding:6px 6px 0}
+.fbl span{width:62px;text-align:center;font-size:18px;font-weight:700;color:var(--sub)}
+
+/* telephone */
+.tel{display:flex;gap:26px;justify-content:center;margin:20px 0 10px;position:relative}
+.tel .box{width:190px;height:84px;white-space:nowrap;font-size:24px!important;border-radius:16px;background:#fff;border:3px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;transition:all .3s;position:relative}
+.tel .box.cur{border-color:var(--q);background:var(--qbg)}
+.tel .memo{position:absolute;top:-34px;left:50%;transform:translateX(-50%);font-size:18px;font-weight:900;color:#fff;background:var(--it);padding:2px 10px;border-radius:8px;transition:opacity .3s}
+
+/* table */
+table.cmp{border-collapse:collapse;font-size:26px;width:100%}
+table.cmp th,table.cmp td{border-bottom:2px solid var(--line);padding:12px 16px;text-align:left}
+table.cmp th{color:var(--sub);font-size:22px}
+table.cmp td.real{font-weight:900;color:var(--it)}
+
+/* sort */
+.scards{display:flex;flex-direction:column;gap:12px}
+.scard{font:inherit;text-align:left;font-size:26px;font-weight:500;background:#fff;border:3px solid var(--line);border-radius:14px;padding:12px 18px;cursor:pointer;transition:all .3s}
+.scard b{color:var(--it);margin-right:10px;font-weight:900}
+.scard.used{opacity:.3}
+.slots{display:flex;gap:12px;align-items:center;font-size:44px;font-weight:900}
+.slot{width:92px;height:92px;border-radius:16px;border:3px dashed #b8b09c;display:flex;align-items:center;justify-content:center;background:#fff;color:var(--it)}
+.slot.good{border:3px solid var(--ok);color:var(--ok);background:#e6f4ea}
+.slot.bad{border:3px solid var(--ng);color:var(--ng);background:#fdeaea}
+
+/* chrome */
+#bar{position:fixed;left:0;bottom:0;height:5px;background:var(--it);transition:width .3s;z-index:5}
+#ctrl{position:fixed;right:14px;bottom:12px;display:flex;gap:6px;align-items:center;z-index:6;opacity:.25;transition:opacity .3s}
+#ctrl:hover{opacity:1}
+#ctrl button{font:inherit;font-size:15px;border:0;border-radius:8px;padding:6px 10px;background:#fff;color:var(--ink);cursor:pointer}
+#ctrl span{color:#fff;font-size:14px;min-width:60px;text-align:center}
+#menu{position:fixed;inset:0;background:rgba(20,33,61,.92);z-index:10;display:none;padding:40px;overflow:auto}
+#menu.open{display:block}
+#menu h3{color:#fff;font-size:22px;margin-bottom:16px}
+#menu ol{columns:3;column-gap:30px;list-style:none}
+#menu li{font-size:17px;line-height:1.4;margin-bottom:6px;break-inside:avoid}
+#menu a{color:#e9ecf3;text-decoration:none;display:block;padding:6px 10px;border-radius:8px}
+#menu a:hover,#menu a.cur{background:rgba(255,255,255,.14)}
+#menu .help{color:#aab3c5;font-size:15px;margin-top:20px;line-height:1.7}
+#black{position:fixed;inset:0;background:#000;z-index:20;display:none}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div id="viewport"><div id="stage">
+
+<!-- ============ 表紙 ============ -->
+<section class="slide divider" data-id="title" data-title="表紙">
+  <div class="center" style="align-items:flex-start;text-align:left">
+    <div class="kicker" style="color:#ffb27a">第2章　第4回</div>
+    <h1 style="font-size:64px;font-weight:900;margin-bottom:14px">LLMの技術を学ぶ③</h1>
+    <p style="font-size:32px;color:#dfe4ee;margin-bottom:56px">文の中で、どの言葉に<b style="color:#ffb27a">注目</b>する？</p>
+    <div class="arcwrap" id="titleArc" style="padding-top:120px">
+      <svg></svg>
+      <div class="sent" style="color:var(--ink)"><span class="w">トロフィーは</span><span class="w">かばんに</span><span class="w">入らなかった。</span><span class="w it">それが</span><span class="w">大きすぎたからだ。</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 前回の振り返り ============ -->
+<section class="slide" data-id="review" data-title="前回の振り返り">
+  <div class="kicker">はじめに</div>
+  <h2>前回：言葉を<span class="itc">数字の組</span>で表した</h2>
+  <div class="row" style="align-items:center;margin-bottom:30px">
+    <div class="sent"><span class="w">犬</span></div><div class="big">→</div>
+    <div class="vec" id="dogVec"></div>
+    <p class="sub" style="margin-left:16px">足し算・引き算や<br>意味の近さが計算できた</p>
+  </div>
+  <div data-f="1" class="card" style="margin-bottom:18px">
+    <p style="margin-bottom:12px"><b>でも…</b> 1つの言葉に、数字の組は<b class="it">1つだけ</b></p>
+    <div class="row" style="align-items:center;gap:18px;margin-bottom:12px">
+      <div class="sent" style="font-size:32px">川に <span class="w hl">はし</span> をかける。</div><div class="big">→</div><div class="vec hashi"></div><div class="big" style="margin-left:8px">🌉?</div>
+    </div>
+    <div class="row" style="align-items:center;gap:18px">
+      <div class="sent" style="font-size:32px">ごはんを <span class="w hl">はし</span> で食べる。</div><div class="big">→</div><div class="vec hashi"></div><div class="big" style="margin-left:8px">🥢?</div>
+    </div>
+  </div>
+  <div data-f="2" class="point">同じ数字なので、区別できない！ → 今日はこれを解決する</div>
+</section>
+
+<!-- ============ 今日のゴール ============ -->
+<section class="slide" data-id="goal" data-title="今日のゴール">
+  <div class="kicker">今日やること</div>
+  <h2>今日のゴール：この3つを説明できる</h2>
+  <div style="display:flex;flex-direction:column;gap:20px">
+    <div class="part" data-f="1"><div class="n">1</div><div class="t">同じ言葉でも、<span class="itc">文脈</span>で注目する相手や意味が変わる</div></div>
+    <div class="part" data-f="2"><div class="n">2</div><div class="t"><span class="itc">アテンション（注意）</span>＝ 文の中で「どの言葉を、どれくらい見るか」を扱う考え方</div></div>
+    <div class="part" data-f="3"><div class="n">3</div><div class="t">第2〜4回の<span class="itc">4つの部品</span>をつなぐと、文章が作られる流れになる</div></div>
+  </div>
+</section>
+
+<!-- ============ 1 ============ -->
+<section class="slide divider" data-id="d1" data-title="1. 注意を引く単語">
+  <div class="center" style="align-items:flex-start;text-align:left">
+    <div class="num">1</div><h1>注意を引く単語</h1>
+    <p>「それ」は何を指している？ クイズで確かめよう</p>
+  </div>
+</section>
+
+<section class="slide" data-id="q1" data-title="1-1 問1">
+  <div class="kicker">1-1 導入</div>
+  <h2>問1　「<span class="itc">それ</span>」は何を指している？</h2>
+  <div class="arcwrap" id="q1Arc" style="margin:10px 0 70px">
+    <svg></svg>
+    <div class="sent"><span class="w">田中さんは</span><span class="w">購買で</span><span class="w">弁当を</span><span class="w">買った。</span><span class="w it">それを</span><span class="w">屋上で</span><span class="w">食べた。</span></div>
+  </div>
+  <div class="opts" id="q1Opts"><div class="opt">ア　田中さん</div><div class="opt">イ　購買</div><div class="opt">ウ　弁当</div><div class="opt">エ　屋上</div></div>
+  <div data-f="1" class="point" style="margin-top:28px">答え：ウ 弁当　―　手掛かりは「<b>食べた</b>」。食べられるのは弁当！</div>
+</section>
+
+<section class="slide" data-id="q23" data-title="1-1 問2・問3">
+  <div class="kicker">1-1 導入</div>
+  <h2>問2・問3　「<span class="itc">それ</span>」はどっち？<small>手掛かりにした言葉も1つ考えよう</small></h2>
+  <div class="card" style="margin-bottom:22px">
+    <p class="sub" style="font-size:24px;margin-bottom:10px">問2</p>
+    <div class="row" style="align-items:center;justify-content:space-between">
+      <div class="sent"><span class="w">トロフィーは</span><span class="w">かばんに</span><span class="w">入らなかった。</span><span class="w it">それが</span><span class="w">大きすぎたからだ。</span></div>
+    </div>
+    <div class="opts" style="margin-top:16px"><div class="opt" id="q2a">ア　トロフィー</div><div class="opt">イ　かばん</div></div>
+  </div>
+  <div class="card">
+    <p class="sub" style="font-size:24px;margin-bottom:10px">問3</p>
+    <div class="sent"><span class="w">トロフィーは</span><span class="w">かばんに</span><span class="w">入らなかった。</span><span class="w it">それが</span><span class="w">小さすぎたからだ。</span></div>
+    <div class="opts" style="margin-top:16px"><div class="opt">ア　トロフィー</div><div class="opt" id="q3b">イ　かばん</div></div>
+  </div>
+  <div class="foot">ワークシート（ノートブック 1-1）に予想を書いてから答え合わせ</div>
+</section>
+
+<section class="slide" data-id="k1" data-title="1-2 解説">
+  <div class="kicker">1-2 解説</div>
+  <h2>違うのは<span class="itc">1語だけ</span>。なのに答えは正反対</h2>
+  <div class="arcwrap short" id="k1a" style="margin-bottom:40px">
+    <svg></svg>
+    <div class="sent"><span class="w">トロフィーは</span><span class="w">かばんに</span><span class="w">入らなかった。</span><span class="w it">それが</span><span class="w diff">大きすぎたからだ。</span></div>
+  </div>
+  <div class="arcwrap short" id="k1b" style="margin-bottom:30px">
+    <svg></svg>
+    <div class="sent"><span class="w">トロフィーは</span><span class="w">かばんに</span><span class="w">入らなかった。</span><span class="w it">それが</span><span class="w diff">小さすぎたからだ。</span></div>
+  </div>
+  <div data-f="3" class="point">「それ」の意味を決めるには、文の中の<b>どの言葉に・どれくらい注目するか</b>が大事</div>
+</section>
+
+<!-- ============ 2 ============ -->
+<section class="slide divider" data-id="d2" data-title="2. 文脈による意味の変化">
+  <div class="center" style="align-items:flex-start;text-align:left">
+    <div class="num">2</div><h1>文脈による意味の変化</h1>
+    <p>「どの言葉をどれくらい見るか」を、コンピュータで計算する</p>
+  </div>
+</section>
+
+<section class="slide" data-id="old" data-title="2-1 これまでの方法では解けない">
+  <div class="kicker">2-1 確認</div>
+  <h2>これまでの方法では、このクイズは解けない</h2>
+  <div class="row" style="flex:1">
+    <div class="card col" data-f="1">
+      <p style="font-weight:900;margin-bottom:4px">第2回　確率言語モデル</p>
+      <p class="sub" style="font-size:24px">直前の<b class="itc">1語</b>しか見ない</p>
+      <div class="arcwrap short" id="oldArc" style="margin-top:6px">
+        <svg></svg>
+        <div class="sent" style="font-size:20px"><span class="w dim">トロフィーは</span><span class="w dim">かばんに</span><span class="w">入らなかった。</span><span class="w it">それが</span></div>
+      </div>
+      <p style="font-size:24px;margin-top:18px">離れた「トロフィー」「かばん」を<b>見に行けない</b></p>
+    </div>
+    <div class="card col" data-f="2">
+      <p style="font-weight:900;margin-bottom:4px">第3回　言葉の意味の数字</p>
+      <p class="sub" style="font-size:24px">1つの言葉に、数字は<b class="itc">1つ</b></p>
+      <div style="margin-top:22px;font-size:24px;line-height:2.2">
+        <div>問2の「それ」→ <span class="vec sore"></span></div>
+        <div>問3の「それ」→ <span class="vec sore"></span></div>
+      </div>
+      <p style="font-size:24px;margin-top:10px">いつも同じ数字なので、<b>指す先を変えられない</b></p>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-id="need" data-title="2-1 必要な2つの仕組み">
+  <div class="kicker">2-1 確認</div>
+  <h2>必要なのは、この2つの仕組み</h2>
+  <div style="display:flex;flex-direction:column;gap:26px;margin-top:20px">
+    <div class="part" data-f="1"><div class="n">1</div><div class="t">文の中の<span class="itc">離れた言葉</span>を、直接見に行ける</div></div>
+    <div class="part" data-f="2"><div class="n">2</div><div class="t">周りの言葉に応じて、同じ言葉でも<span class="itc">意味を表す数字が変わる</span></div></div>
+  </div>
+</section>
+
+<section class="slide" data-id="tel" data-title="2-2 Transformer以前">
+  <div class="kicker">2-2 解説</div>
+  <h2>2017年より前：1語ずつ順番に処理する「伝言ゲーム」</h2>
+  <div class="tel" id="telRow">
+    <div class="box">トロフィーは<span class="memo">情報</span></div><div class="box">かばんに</div><div class="box">入らなかった</div><div class="box">それが</div><div class="box">大きすぎた</div>
+  </div>
+  <p class="sub" style="text-align:center;font-size:22px;margin-bottom:22px">前の言葉の情報を、となりへ、となりへ…と渡していく</p>
+  <div class="row">
+    <div class="card col" data-f="1"><p style="font-weight:900">課題1　離れた語の関係を捉えにくい</p><p style="font-size:24px">文が長いほど、前のほうの情報が<b>薄れていく</b></p></div>
+    <div class="card col" data-f="2"><p style="font-weight:900">課題2　並列化しにくい</p><p style="font-size:24px">1語目が終わらないと2語目に進めない → <b>大規模化のじゃま</b></p></div>
+  </div>
+</section>
+
+<section class="slide" data-id="tf" data-title="2-2 Transformer と Attention">
+  <div class="kicker">2-2 解説</div>
+  <h2>2017年：<span class="itc">Transformer</span> と <span class="itc">Attention（注意）</span></h2>
+  <div class="arcwrap" id="tfArc" style="margin:0 0 20px;padding-top:120px">
+    <svg></svg>
+    <div class="sent"><span class="w">トロフィーは</span><span class="w">かばんに</span><span class="w">入らなかった。</span><span class="w it">それが</span><span class="w">大きすぎたからだ。</span></div>
+  </div>
+  <div class="row">
+    <div class="card col" data-f="1"><p style="font-size:26px"><b>Attention</b>：ある言葉を処理するとき、<br>文の中の<b class="itc">どの言葉をどれくらい重視するか</b>を計算する</p><p class="note" style="margin-top:6px">この授業では、これを「<b>見る</b>」と言います</p></div>
+    <div class="card col" data-f="2"><p style="font-size:24px">✅ 離れた言葉と<b>直接</b>つながる → 課題1<br>✅ 全部の位置を<b>まとめて</b>計算できる → 課題2</p></div>
+  </div>
+  <p class="note" data-f="2" style="margin-top:12px">※文章を生成するLLMでは、次の言葉を予測するとき<b>その先の言葉は見ない</b>という制約があります（今日の演習は文全体を見ます）</p>
+</section>
+
+<section class="slide" data-id="feat" data-title="2-3 言葉を数字にする">
+  <div class="kicker">2-3 実行</div>
+  <div class="nb">💻 ノートブック 2-3 ① 1つ目のセル</div>
+  <h2>まず、言葉を<span class="itc">9つの特徴</span>の数字にする</h2>
+  <table class="heat" id="heat"></table>
+  <div data-f="1" class="point" style="margin-top:16px;font-size:26px">「それが」は「指す言葉」という役目だけ。<b>まだ何を指すかは分からない</b></div>
+</section>
+
+<section class="slide" data-id="qkv" data-title="2-3 問いかけ・目印・中身">
+  <div class="kicker">2-3 実行</div>
+  <div class="nb">💻 ノートブック 2-3 ② 2つ目のセル</div>
+  <h2>言葉ごとに、3つの数字の組を作る</h2>
+  <div class="row" style="gap:20px">
+    <div class="qkv" data-f="1" style="border-color:var(--q);background:var(--qbg)"><h3 style="color:var(--q)">🔍 問いかけ</h3><div class="en" style="color:var(--q)">クエリ（Query）</div><p>その言葉が<b>どんな言葉を探しているか</b></p><div class="ex"><span class="itc">それ</span>：「ようすを表す言葉はどこ？」</div></div>
+    <div class="qkv" data-f="2" style="border-color:var(--k);background:var(--kbg)"><h3 style="color:var(--k)">🏷️ 目印</h3><div class="en" style="color:var(--k)">キー（Key）</div><p>その言葉が<b>どんな言葉か</b></p><div class="ex">大きすぎた：「ようすを表す言葉です」</div></div>
+    <div class="qkv" data-f="3" style="border-color:var(--v);background:var(--vbg)"><h3 style="color:var(--v)">📦 中身</h3><div class="en" style="color:var(--v)">バリュー（Value）</div><p>見られたときに<b>渡す数字</b></p><div class="ex">大きすぎた：「大きい」を渡す</div></div>
+  </div>
+  <div data-f="4" class="card" style="margin-top:22px;display:flex;align-items:center;gap:14px;font-size:26px;font-weight:700;justify-content:center">
+    <span style="color:var(--q)">問いかけ</span>×<span style="color:var(--k)">目印</span>＝<span>相性の点数</span><span class="sub">→</span><span>合計100%に割り振る</span><span class="sub">→</span><span>割合に応じて<span style="color:var(--v)">中身</span>を混ぜる</span>
+  </div>
+</section>
+
+<section class="slide" data-id="r1" data-title="2-3 1回目の計算">
+  <div class="kicker">2-3 実行</div>
+  <div class="nb">💻 ノートブック 2-3 ③ 文Aと文Bで計算</div>
+  <h2>1回目：「<span class="itc">それ</span>」はどこを見る？ <span class="tog" id="r1tog" style="vertical-align:middle;margin-left:14px"><button data-s="A" class="on">文A 大きすぎた</button><button data-s="B">文B 小さすぎた</button></span></h2>
+  <div class="arcwrap short" id="r1Arc" style="margin-bottom:22px"><svg></svg><div class="sent"></div></div>
+  <div class="row" style="align-items:flex-start">
+    <div class="col"><p class="sub" style="font-size:22px;margin-bottom:8px">「それ」が見た割合</p><div class="bars" id="r1Bars"></div></div>
+    <div class="card" data-f="2" style="width:420px"><p style="font-size:24px;font-weight:700">「それ」が受け取った数字</p><p style="font-size:24px;margin:10px 0">［大きい、小さい］＝ <span class="vec" id="r1Got"></span></p><p class="note">でも、トロフィーか かばんかは<b>まだ決まっていない</b></p></div>
+  </div>
+</section>
+
+<section class="slide" data-id="r2" data-title="2-3 2回目の計算">
+  <div class="kicker">2-3 実行</div>
+  <div class="nb">💻 ノートブック 2-3 ④ もう1回計算</div>
+  <h2>2回目：受け取った数字で、もう一度見る <span class="tog" id="r2tog" style="vertical-align:middle;margin-left:10px"><button data-s="A" class="on">文A</button><button data-s="B">文B</button></span></h2>
+  <p id="r2rule" style="font-size:26px;margin-bottom:4px"></p>
+  <div class="arcwrap short" id="r2Arc" style="margin-bottom:16px"><svg></svg><div class="sent"></div></div>
+  <div class="row" style="align-items:flex-start">
+    <div class="col"><div class="bars" id="r2Bars"></div></div>
+    <div class="card" data-f="2" style="width:560px"><p style="font-size:22px;font-weight:700;margin-bottom:6px">作り直した「それ」の意味の数字</p><div class="vec" id="r2Vec"></div><div id="r2Cmp" style="font-size:22px;margin-top:10px;line-height:1.7"></div><div id="r2Ans" data-f="3" class="point" style="margin-top:8px;font-size:24px;padding:10px 16px;white-space:nowrap"></div></div>
+  </div>
+</section>
+
+<section class="slide" data-id="res" data-title="2-3 文脈による意味の変化">
+  <div class="kicker">2-3 まとめ</div>
+  <h2>同じ「<span class="itc">それ</span>」なのに、数字が変わった！</h2>
+  <div class="card" style="font-size:26px;line-height:2.3;margin-bottom:20px">
+    <div class="sub" style="font-size:20px;line-height:1.4;margin-left:200px">［入れ物らしさ, かたさ, 賞らしさ, 持ち運ぶもの］</div>
+    <div><b style="display:inline-block;width:200px">文Aの「それ」</b><span class="vec" id="resA"></span>　≒ トロフィー <span class="vec" id="resT"></span></div>
+    <div><b style="display:inline-block;width:200px">文Bの「それ」</b><span class="vec" id="resB"></span>　≒ かばん　 <span class="vec" id="resK"></span></div>
+  </div>
+  <div data-f="1" class="point" style="margin-bottom:18px">これが<b>文脈による意味の変化</b>。まわりの言葉によって、数字が作り直される</div>
+  <div data-f="2" class="row" style="gap:16px">
+    <div class="card col" style="font-size:24px">川に<b class="itc">はし</b>をかける → 「川」「かける」を強く見る → <b>橋</b> 🌉</div>
+    <div class="card col" style="font-size:24px">ごはんを<b class="itc">はし</b>で食べる → 「ごはん」「食べる」を強く見る → <b>箸</b> 🥢</div>
+  </div>
+</section>
+
+<section class="slide" data-id="work" data-title="2-4 ワーク">
+  <div class="kicker">2-4 ワーク</div>
+  <div class="nb">💻 ノートブック 2-4</div>
+  <h2>文を変えると、どうなる？</h2>
+  <div class="card" style="display:flex;align-items:center;gap:8px;font-size:26px;font-weight:700;margin-bottom:16px;flex-wrap:wrap">
+    <select id="wN1"></select>は <select id="wN2"></select>に 入らなかった。<span class="itc">それが</span> <select id="wAdj"><option>大きすぎた</option><option>小さすぎた</option><option>重すぎた</option></select>からだ。
+  </div>
+  <div class="row" style="align-items:flex-start">
+    <div class="col">
+      <p class="sub" style="font-size:22px;margin-bottom:6px">2回目：「それ」が見た割合</p>
+      <div class="bars" id="wBars"></div>
+      <div id="wAns" class="point" style="margin-top:14px;font-size:28px"></div>
+    </div>
+    <div class="card" style="width:430px">
+      <p style="font-weight:900;font-size:24px;margin-bottom:6px">試してみること</p>
+      <ol style="padding-left:28px"><li style="font-size:22px">「大きすぎた」と「小さすぎた」を入れ替える</li><li style="font-size:22px">かばんは 箱に… と、入れ物を<b>入る側</b>にする</li><li style="font-size:22px">「重すぎた」など<b>表にない言葉</b>を使う</li></ol>
+      <p class="note" style="margin-top:10px">ノートブックでは文を書き換え → そのセル → 下の「変更しない」セルの順に実行</p>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-id="work2" data-title="2-4 ワークのふりかえり">
+  <div class="kicker">2-4 ワーク</div>
+  <h2>どこをどれくらい見るかが、<span class="itc">意味を決めている</span></h2>
+  <div style="display:flex;flex-direction:column;gap:18px">
+    <div class="card" data-f="1"><p>文を変える → <b>見る割合</b>が変わる → <b>作られる数字</b>が変わる → 指す先も変わる</p></div>
+    <div class="card" data-f="2"><p>「重すぎた」は表にない言葉 → 数字が全部0 → 手掛かりがなく<b>決められない</b></p></div>
+    <div class="card" data-f="3"><p>今日の数字は<b>人が用意</b>した。実際のLLMは、計算に使う数字を<b class="itc">大量の文章から学習</b>して決める</p></div>
+  </div>
+</section>
+
+<section class="slide" data-id="att" data-title="2-5 アテンションの考え方">
+  <div class="kicker">2-5 解説</div>
+  <h2>アテンションがしていること</h2>
+  <div style="display:flex;flex-direction:column;gap:20px">
+    <div class="part" data-f="1"><div class="n">1</div><div class="t">文の中のすべての言葉が、他のすべての言葉を<span class="itc">同時に見る</span></div></div>
+    <div class="part" data-f="2"><div class="n">2</div><div class="t">「どの言葉をどれくらい見るか」を<span class="itc">数字で決める</span></div></div>
+    <div class="part" data-f="3"><div class="n">3</div><div class="t">見た割合に応じて数字を混ぜ、その言葉の<span class="itc">数字を作り直す</span></div></div>
+  </div>
+  <p class="note" data-f="4" style="margin-top:20px;font-size:22px">実際のTransformerでは、アテンションを含む処理の層を<b>何層も</b>重ねます（今日は2回）</p>
+</section>
+
+<!-- ============ 3 ============ -->
+<section class="slide divider" data-id="d3" data-title="3. LLMの仕組み">
+  <div class="center" style="align-items:flex-start;text-align:left">
+    <div class="num">3</div><h1>LLMの仕組み</h1>
+    <p>第2回〜第4回の部品を組み立てる</p>
+  </div>
+</section>
+
+<section class="slide" data-id="parts" data-title="3-1 4つの部品">
+  <div class="kicker">3-1 解説</div>
+  <h2>これまでに、4つの部品がそろった</h2>
+  <div class="parts">
+    <div class="part" data-f="1"><div class="n">①</div><div><div class="t">言葉の意味を数字で表現する</div><div class="r">第3回（前回）</div></div></div>
+    <div class="part" data-f="2"><div class="n">②</div><div><div class="t">周りの言葉を見て、数字を作り直す（アテンション）</div><div class="r">第4回（今回）</div></div></div>
+    <div class="part" data-f="3"><div class="n">③</div><div><div class="t">次に来る言葉の確率を計算して、1つ選ぶ</div><div class="r">第2回（前々回）</div></div></div>
+    <div class="part" data-f="4"><div class="n">④</div><div><div class="t">大量の文章で学習する（大規模化）</div><div class="r">第2回（前々回）</div></div></div>
+  </div>
+</section>
+
+<section class="slide" data-id="flow" data-title="3-1 文章生成の流れ">
+  <div class="kicker">3-1 解説</div>
+  <h2>4つの部品をつなぐと…</h2>
+  <div class="row" style="gap:40px;align-items:flex-start">
+    <div class="flow">
+      <div class="fstep" id="fs0"><span class="lab">入力</span><span class="tx" id="flowIn">私は 毎朝 学校で</span></div>
+      <div class="fstep" id="fs1"><span class="lab">STEP1</span><span class="tx">言葉の意味を数字にする</span><span class="pt">部品①</span></div>
+      <div class="fstep" id="fs2"><span class="lab">STEP2</span><span class="tx">周りの言葉を見て、数字を作り直す</span><span class="pt">部品②</span></div>
+      <div class="fstep" id="fs3"><span class="lab">STEP3</span><span class="tx">次の言葉の確率 → 1つ選ぶ</span><span class="pt">部品③</span></div>
+      <div class="fstep" id="fs4"><span class="lab">出力</span><span class="tx">選んだ言葉を末尾に足して <b class="itc">STEP1へ戻る ↺</b></span></div>
+    </div>
+    <div class="col">
+      <div class="card" data-f="5" style="margin-bottom:16px"><p style="font-size:24px"><b>部品④</b>：この流れ全体を、<b class="itc">大量の文章で練習</b>させる</p></div>
+      <div class="card" data-f="6"><p style="font-size:22px">実際のLLMも、<b>次のトークンを予測して1つずつ足す</b>ことを繰り返して文章を作っている</p><p class="note" style="margin-top:8px">※実際は位置の情報も数字にする／STEP2を何層も重ねる</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-id="mix" data-title="3-2 毎朝と放課後">
+  <div class="kicker">3-2 実行</div>
+  <div class="nb">💻 ノートブック 3-2</div>
+  <h2>「毎朝」と「放課後」で、次の言葉は変わる？</h2>
+  <div class="row" style="gap:28px">
+    <div class="card col mixcol" data-c="0"></div>
+    <div class="card col mixcol" data-c="1"></div>
+  </div>
+  <div data-f="4" class="point" style="margin-top:12px;font-size:22px;padding:10px 18px">第2回の確率言語モデルは直前の「学校で」しか見ない → どちらも<b>同じ確率</b>だった。今回は文脈で予測が変わる！</div>
+</section>
+
+<section class="slide" data-id="real" data-title="3-3 実際のLLMとの違い">
+  <div class="kicker">3-3 解説</div>
+  <h2>実際のLLMとの違い：<span class="itc">規模</span>がまったく違う</h2>
+  <table class="cmp">
+    <tr><th></th><th>この教材</th><th>本物のLLM（目安）</th></tr>
+    <tr data-f="1"><td>特徴の数</td><td>4個</td><td class="real">数千個</td></tr>
+    <tr data-f="2"><td>STEP2の繰り返し</td><td>1回</td><td class="real">数十回</td></tr>
+    <tr data-f="3"><td>学習データ</td><td>6文</td><td class="real">数千億〜数十兆トークン</td></tr>
+    <tr data-f="4"><td>パラメータ</td><td>数十個</td><td class="real">数十億〜数兆個</td></tr>
+  </table>
+  <div data-f="5" class="card" style="margin-top:20px"><p style="font-size:24px">さらに、学習の後に「<b>こう聞かれたら、こう答えるとよい</b>」という例をたくさん見せて、<b class="itc">指示に沿って答えやすくする調整</b>をするLLMもある</p></div>
+</section>
+
+<section class="slide" data-id="sort" data-title="3-4 流れを並べる">
+  <div class="kicker">3-4 確認</div>
+  <h2>処理する順番に並べよう</h2>
+  <div class="row" style="gap:40px;align-items:flex-start">
+    <div class="scards col" id="sCards">
+      <button class="scard" data-k="ア"><b>ア</b>次の言葉の候補の確率を計算する</button>
+      <button class="scard" data-k="イ"><b>イ</b>入力された文章をトークンに分ける</button>
+      <button class="scard" data-k="ウ"><b>ウ</b>Attentionを含むTransformerの処理で、周りの言葉との関係を使って数字を作り直す</button>
+      <button class="scard" data-k="エ"><b>エ</b>トークンを数字の組で表し、言葉の並び順の情報も加える</button>
+    </div>
+    <div style="width:470px">
+      <div class="slots" id="sSlots"><div class="slot"></div>→<div class="slot"></div>→<div class="slot"></div>→<div class="slot"></div></div>
+      <div style="margin-top:16px;display:flex;gap:10px"><button class="act" id="sReset">やり直す</button></div>
+      <div data-f="1" class="point" style="margin-top:22px">正解：イ → エ → ウ → ア<br><span style="font-size:22px;font-weight:500">この後、確率に応じて1つ選び、末尾に足して繰り返す</span></div>
+    </div>
+  </div>
+  <div class="foot">カードをクリックすると左から順に入ります（→キーで正解を表示）</div>
+</section>
+
+<section class="slide" data-id="sum" data-title="まとめ">
+  <div class="kicker">まとめ</div>
+  <h2>今日学んだこと</h2>
+  <div style="display:flex;flex-direction:column;gap:20px">
+    <div class="part" data-f="1"><div class="n">1</div><div class="t">文脈によって、同じ言葉でも<span class="itc">注目する相手や意味を表す数字</span>が変わる</div></div>
+    <div class="part" data-f="2"><div class="n">2</div><div class="t">アテンションは「<span class="itc">どの言葉をどれくらい見るか</span>」を扱い、言葉の数字を作り直す</div></div>
+    <div class="part" data-f="3"><div class="n">3</div><div class="t">第2〜4回の内容を組み合わせると、<span class="itc">次の言葉を確率で選ぶ流れ</span>としてLLMを整理できる</div></div>
+  </div>
+</section>
+
+<section class="slide" data-id="refl" data-title="振り返り">
+  <div class="kicker">振り返り</div>
+  <h2>自分の言葉で、短く書いてみよう</h2>
+  <div class="card" style="margin-bottom:20px">
+    <p style="font-weight:900">1. 文脈が変わると、次の言葉の予測が変わるのはなぜ？</p>
+    <p style="font-size:22px" class="sub">ヒント：文Aと文Bで「それ」が一番見た言葉は？／「毎朝」と「放課後」で一番確率が高い候補は？</p>
+  </div>
+  <div class="card">
+    <p style="font-weight:900">2. 今日の教材モデルと実際のLLMの違いを1つ</p>
+    <p style="font-size:22px" class="sub">ヒント：3-3の表を見返そう</p>
+  </div>
+  <p class="note" style="margin-top:18px">うまく説明できないところは、「どこが分からないか」を書いてもOK</p>
+</section>
+
+<section class="slide divider" data-id="next" data-title="次回への接続">
+  <div class="center" style="align-items:flex-start;text-align:left">
+    <div class="kicker" style="color:#ffb27a">次回への接続</div>
+    <h1 style="font-size:46px;line-height:1.5">言葉を<span style="color:#ffb27a">数字</span>で表し、<span style="color:#ffb27a">文脈</span>を考え、<br><span style="color:#ffb27a">次の言葉</span>を予測する</h1>
+    <p style="margin-top:20px">この仕組みを使ったLLMで、どんな課題が解決できる？<br>→ 次回は、LLMを活用した課題解決の事例を見ていきます</p>
+  </div>
+</section>
+
+</div></div>
+
+<div id="bar"></div>
+<div id="ctrl"><button id="bPrev">◀</button><span id="pg"></span><button id="bNext">▶</button><button id="bMenu">目次</button><button id="bFull">全画面</button></div>
+<div id="menu"><h3>目次（クリックで移動）</h3><ol id="menuList"></ol>
+<div class="help">→ / Space / Enter：次へ　← ：戻る　Home / End：最初・最後　F：全画面　M：目次　B：画面を暗くする<br>アニメーションは → キーで1つずつ進みます。</div></div>
+<div id="black"></div>
+
+<script>
+/* ===================== モデル（ノートブックと同じ計算） ===================== */
+const FEAT=["入れ物らしさ","かたさ","賞らしさ","持ち運ぶもの","入る側","入れ先","指す言葉","大きい","小さい"];
+const NOUNS={"トロフィー":[0,10,10,3],"かばん":[10,3,0,10],"箱":[10,6,0,5],"袋":[10,0,0,9],"棚":[10,8,0,0],"引き出し":[10,6,0,0],"ケース":[10,7,0,8],"ボール":[0,5,0,6],"本":[0,4,0,8],"ぬいぐるみ":[0,0,0,7],"ギター":[0,7,0,6]};
+const PART={"は":"入る側","が":"入る側","に":"入れ先"};
+const OTH={"それが":"指す言葉","それは":"指す言葉","大きすぎた":"大きい","小さすぎた":"小さい","入らなかった":null};
+function w2n(w){const n=Array(9).fill(0);if(w in OTH){if(OTH[w])n[FEAT.indexOf(OTH[w])]=10;return n}
+  const noun=w.slice(0,-1),p=w.slice(-1);if(NOUNS[noun]&&PART[p]){NOUNS[noun].forEach((v,i)=>n[i]=v);n[FEAT.indexOf(PART[p])]=10}return n}
+function table(entries,cols){const t=FEAT.map(()=>Array(cols).fill(0));entries.forEach(([f,c,v])=>t[FEAT.indexOf(f)][c]=v);return t}
+const mm=(A,B)=>A.map(r=>B[0].map((_,j)=>r.reduce((s,a,k)=>s+a*B[k][j],0)));
+const addM=(A,B)=>A.map((r,i)=>r.map((x,j)=>x+B[i][j]));
+function softmax(r){const m=Math.max(...r),e=r.map(x=>Math.exp(x-m)),s=e.reduce((a,b)=>a+b,0);return e.map(x=>x/s)}
+function attn(X,q,k,v){const Q=mm(X,q),K=mm(X,k),V=mm(X,v),d=Q[0].length;
+  const W=Q.map(qi=>softmax(K.map(kj=>qi.reduce((s,a,i)=>s+a*kj[i],0)/Math.sqrt(d))));return{W,M:mm(W,V)}}
+const q1=table([["指す言葉",0,.15]],1),k1=table([["大きい",0,.15],["小さい",0,.15]],1),v1=table([["大きい",7,1],["小さい",8,1]],9);
+const q2=table([["大きい",0,.25],["小さい",1,.25]],2),k2=table([["入る側",0,.25],["入れ先",1,.25]],2),v2=table(FEAT.slice(0,4).map((f,i)=>[f,i,1]),9);
+function readIt(words){const X=words.map(w2n),it=words.findIndex(w=>OTH[w]==="指す言葉");
+  const r1=attn(X,q1,k1,v1),X1=addM(X,r1.M),r2=attn(X1,q2,k2,v2),vec=addM(X1,r2.M)[it].slice(0,4);
+  const cands=words.filter(w=>NOUNS[w.slice(0,-1)]).map(w=>{const n=w.slice(0,-1);return{n,d:Math.round(vec.reduce((s,x,i)=>s+Math.abs(x-NOUNS[n][i]),0)*10)/10}}).sort((a,b)=>a.d-b.d);
+  const ok=!(cands.length>1&&cands[1].d-cands[0].d<5);
+  return{X,it,W1:r1.W[it],W2:r2.W[it],X1it:X1[it],vec,cands,ans:ok?cands[0].n:null}}
+const SENT={A:["トロフィーは","かばんに","入らなかった","それが","大きすぎた"],B:["トロフィーは","かばんに","入らなかった","それが","小さすぎた"]};
+
+/* ===================== 表示ヘルパー ===================== */
+let T=[];const later=(f,ms)=>T.push(setTimeout(f,ms)),every=(f,ms)=>T.push(setInterval(f,ms));
+const clearT=()=>{T.forEach(id=>{clearTimeout(id);clearInterval(id)});T=[]};
+const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
+const pct=x=>Math.round(x*100)+"%";
+function fmt(x){const r=Math.round(x*10)/10;return Number.isInteger(r)?String(r):r.toFixed(1)}
+function heatColor(v,max,rgb){const a=Math.max(0,Math.min(1,v/max));return `rgba(${rgb},${(a*0.85).toFixed(2)})`}
+function vecHTML(arr,max=10,rgb="28,126,214"){return arr.map(v=>`<span style="background:${heatColor(v,max,rgb)};color:${v/max>.6?'#fff':'inherit'}">${fmt(v)}</span>`).join("")}
+/* arcs: wrap(.arcwrap) / from idx / list[{to,w,c,dash}] */
+function arcs(wrap,from,list,instant){const svg=$("svg",wrap),ch=$$(".w",wrap);svg.innerHTML="";
+  const fa=ch[from];if(!fa)return;const fx=fa.offsetLeft+fa.offsetWidth/2,fy=fa.offsetTop;
+  list.forEach(o=>{const b=ch[o.to];if(!b)return;const tx=b.offsetLeft+b.offsetWidth/2,ty=b.offsetTop;
+    const h=Math.min(wrap.classList.contains("short")?80:118,26+Math.abs(tx-fx)*.28);
+    const p=document.createElementNS("http://www.w3.org/2000/svg","path");
+    p.setAttribute("d",`M${fx} ${fy-4} C ${fx} ${fy-h}, ${tx} ${ty-h}, ${tx} ${ty-4}`);
+    p.setAttribute("fill","none");p.setAttribute("stroke",o.c||"#e8590c");p.setAttribute("stroke-linecap","round");
+    p.setAttribute("stroke-width",2+(o.w??1)*12);p.setAttribute("opacity",.25+.75*(o.w??1));
+    if(o.dash)p.setAttribute("stroke-dasharray","6 10");svg.appendChild(p);
+    const d=document.createElementNS("http://www.w3.org/2000/svg","circle");d.setAttribute("cx",tx);d.setAttribute("cy",ty-4);
+    d.setAttribute("r",5+(o.w??1)*6);d.setAttribute("fill",o.c||"#e8590c");d.setAttribute("opacity",.3+.7*(o.w??1));svg.appendChild(d);
+    if(!instant&&!o.dash){const L=p.getTotalLength();p.style.strokeDasharray=L;p.style.strokeDashoffset=L;d.style.opacity=0;
+      p.getBoundingClientRect();p.style.transition="stroke-dashoffset .9s ease";p.style.strokeDashoffset=0;
+      d.style.transition="opacity .3s .8s";requestAnimationFrame(()=>d.style.opacity=""); }});}
+function bars(el,items,color,instant){el.innerHTML=items.map(o=>`<div class="bar ${o.top?'top':''}"><span class="bl">${o.l}</span><span class="bt"><i style="background:${o.c||color}"></i></span><span class="bv">${o.t}</span></div>`).join("");
+  const is=$$("i",el);const set=()=>is.forEach((x,i)=>x.style.width=(items[i].v*100)+"%");
+  if(instant){is.forEach(x=>x.style.transition="none");set()}else requestAnimationFrame(()=>requestAnimationFrame(set))}
+function sentChips(wrap,words,itIdx){$(".sent",wrap).innerHTML=words.map((w,i)=>`<span class="w${i===itIdx?' it':''}">${w}</span>`).join("")}
+function attBars(el,words,W,instant,color){const mx=Math.max(...W),top=mx>.3?W.indexOf(mx):-1;
+  bars(el,words.map((w,i)=>({l:w,v:W[i],t:pct(W[i]),top:i===top})),color||"var(--it)",instant)}
+function zeroBars(el,words){bars(el,words.map(w=>({l:w,v:0,t:""})),"var(--it)",true)}
+
+/* ===================== スライドごとの動き ===================== */
+const S={};
+S.title={init(){const w=$("#titleArc");const run=()=>arcs(w,3,[{to:0,w:.9},{to:4,w:.5,c:"#1c7ed6"},{to:1,w:.15}],false);run();every(run,3200)}};
+S.review={init(el){$("#dogVec").innerHTML=vecHTML([8,2,9,1]);$$(".hashi",el).forEach(v=>v.innerHTML=vecHTML([3,7,1,5]))}};
+S.q1={init(el){$$(".opt",el).forEach(o=>o.classList.remove("ok"));$$("#q1Arc .w",el).forEach(w=>w.classList.remove("hl","tgt"));$("#q1Arc svg").innerHTML=""},
+  step(k,el,inst){if(k>=1){$$(".opt",el)[2].classList.add("ok");const ch=$$("#q1Arc .w");ch[6].classList.add("hl");ch[2].classList.add("tgt");
+    arcs($("#q1Arc"),4,[{to:2,w:1},{to:6,w:.4,c:"#1c7ed6"}],inst)}}};
+S.q23={init(){$("#q2a").classList.remove("ok");$("#q3b").classList.remove("ok")},maxStep:2,
+  step(k){if(k>=1)$("#q2a").classList.add("ok");if(k>=2)$("#q3b").classList.add("ok")}};
+S.k1={maxStep:3,init(el){$$(".w",el).forEach(w=>{w.classList.remove("hl","tgt");$(".tag",w)?.remove()});$$("svg",el).forEach(s=>s.innerHTML="")},
+  step(k,el,inst){if(k===1){$$(".diff",el).forEach(w=>{w.classList.add("hl");w.insertAdjacentHTML("beforeend",'<span class="tag">ここだけ違う</span>')})}
+    if(k===2){arcs($("#k1a"),3,[{to:0,w:1},{to:4,w:.35,c:"#1c7ed6"}],inst);arcs($("#k1b"),3,[{to:1,w:1},{to:4,w:.35,c:"#1c7ed6"}],inst);
+      $$("#k1a .w")[0].classList.add("tgt");$$("#k1b .w")[1].classList.add("tgt")}}};
+S.old={init(el){arcs($("#oldArc"),3,[{to:2,w:.8}],true);$$(".sore",el).forEach(v=>v.innerHTML=vecHTML([0,0,0,0,0,0,10,0,0]))},
+  step(k){if(k===1)arcs($("#oldArc"),3,[{to:2,w:.8}],false)}};
+S.tel={init(el){const bx=$$("#telRow .box",el),memo=$(".memo",el);let i=0;
+  const tick=()=>{bx.forEach(b=>b.classList.remove("cur"));bx[i].classList.add("cur");bx[i].appendChild(memo);memo.style.opacity=Math.max(.15,1-i*.24);memo.textContent=i===0?"情報":"情報"+"…".repeat(i>2?2:i>0?1:0);i=(i+1)%bx.length};
+  tick();every(tick,900)}};
+S.tf={init(){const w=$("#tfArc");const run=()=>{const svg=$("svg",w),ch=$$(".w",w),keep=[];
+    for(let a=0;a<ch.length;a++){const list=[];for(let b=0;b<ch.length;b++)if(a!==b)list.push({to:b,w:a===3?(b===0?.9:b===4?.5:.12):.06,c:a===3?"#e8590c":"#1c7ed6"});
+      arcs(w,a,list,true);keep.push(...[...svg.childNodes].map(n=>n.cloneNode(true)))}
+    svg.innerHTML="";keep.forEach(n=>svg.appendChild(n));
+    $$("path",svg).forEach(p=>{const L=p.getTotalLength();p.style.strokeDasharray=L;p.style.strokeDashoffset=L;p.getBoundingClientRect();p.style.transition="stroke-dashoffset 1s ease";p.style.strokeDashoffset=0})};
+  run();every(run,3500)}};
+S.feat={init(el){const words=SENT.A,X=words.map(w2n);
+  let h=`<tr><th class="rowh"></th><th colspan="4"><div class="grp" style="background:var(--qbg);color:var(--q)">言葉の意味（第3回と同じ）</div></th><th colspan="5"><div class="grp" style="background:var(--kbg);color:var(--k)">文の中での役目</div></th></tr>`;
+  h+=`<tr><th class="rowh"></th>${FEAT.map(f=>`<th>${f}</th>`).join("")}</tr>`;
+  h+=words.map((w,i)=>`<tr data-i="${i}"><th class="rowh">${w}</th>${X[i].map((v,j)=>`<td style="background:${heatColor(v,10,j<4?"28,126,214":"43,138,62")};color:${v>6?'#fff':'inherit'}">${v}</td>`).join("")}</tr>`).join("");
+  $("#heat").innerHTML=h},
+  step(k){if(k>=1)$$("#heat tr[data-i]").forEach(r=>{r.classList.toggle("it",r.dataset.i==="3");r.classList.toggle("dim",r.dataset.i!=="3")})}};
+function togSetup(id,fn){$$("#"+id+" button").forEach(b=>b.onclick=()=>{$$("#"+id+" button").forEach(x=>x.classList.toggle("on",x===b));fn(b.dataset.s)})}
+const st={r1:"A",r2:"A"};
+S.r1={maxStep:2,init(){togSetup("r1tog",s=>{st.r1=s;S.r1.render(false)});$$("#r1tog button").forEach(x=>x.classList.toggle("on",x.dataset.s===st.r1));S.r1.render(true,true)},
+  render(inst,blank){const w=SENT[st.r1],R=readIt(w),wrap=$("#r1Arc");sentChips(wrap,w,R.it);
+    const k=cur>=0?step:0;if(blank||k<1){$("svg",wrap).innerHTML="";zeroBars($("#r1Bars"),w)}
+    else{arcs(wrap,R.it,w.map((_,i)=>({to:i,w:R.W1[i]})).filter(o=>o.to!==R.it),inst);attBars($("#r1Bars"),w,R.W1,inst)}
+    $("#r1Got").innerHTML=vecHTML(R.X1it.slice(7),7,"232,89,12")},
+  step(k,el,inst){if(k>=1)S.r1.render(inst)}};
+S.r2={maxStep:3,init(){togSetup("r2tog",s=>{st.r2=s;S.r2.render(false)});$$("#r2tog button").forEach(x=>x.classList.toggle("on",x.dataset.s===st.r2));S.r2.render(true,true)},
+  render(inst,blank){const w=SENT[st.r2],R=readIt(w),wrap=$("#r2Arc");sentChips(wrap,w,R.it);
+    $("#r2rule").innerHTML=st.r2==="A"?"「<b>大きい</b>」を受け取った「それ」は、<b class='itc'>入る側</b>（〜は）を探す":"「<b>小さい</b>」を受け取った「それ」は、<b class='itc'>入れ先</b>（〜に）を探す";
+    const k=step;if(blank||k<1){$("svg",wrap).innerHTML="";zeroBars($("#r2Bars"),w)}
+    else{arcs(wrap,R.it,w.map((_,i)=>({to:i,w:R.W2[i]})).filter(o=>o.to!==R.it),inst);attBars($("#r2Bars"),w,R.W2,inst)}
+    $("#r2Vec").innerHTML=vecHTML(R.vec);
+    $("#r2Cmp").innerHTML=R.cands.map(c=>`「${c.n}」とのちがい：<b>${c.d}</b>`).join("　");
+    $("#r2Ans").innerHTML=`→ 「それ」が指すのは【${R.ans}】`},
+  step(k,el,inst){if(k>=1)S.r2.render(inst)}};
+S.res={init(){const a=readIt(SENT.A),b=readIt(SENT.B);$("#resA").innerHTML=vecHTML(a.vec);$("#resB").innerHTML=vecHTML(b.vec);
+  $("#resT").innerHTML=vecHTML(NOUNS["トロフィー"]);$("#resK").innerHTML=vecHTML(NOUNS["かばん"])}};
+S.work={init(){const n1=$("#wN1"),n2=$("#wN2");if(!n1.options.length){Object.keys(NOUNS).forEach(n=>{n1.add(new Option(n));n2.add(new Option(n))});n1.value="トロフィー";n2.value="かばん";
+    [n1,n2,$("#wAdj")].forEach(s=>s.onchange=()=>S.work.render(false))}S.work.render(true)},
+  render(inst){const w=[$("#wN1").value+"は",$("#wN2").value+"に","入らなかった","それが",$("#wAdj").value],R=readIt(w);
+    attBars($("#wBars"),w,R.W2,inst);
+    $("#wAns").innerHTML=R.ans?`→ 「それ」が指すのは【${R.ans}】`:`→ どちらを指しているか、<b>決められません</b>`}};
+S.flow={maxStep:6,init(){$$(".fstep").forEach(f=>f.classList.remove("lit"));$("#flowIn").innerHTML="私は 毎朝 学校で"},
+  step(k){$$(".fstep").forEach((f,i)=>f.classList.toggle("lit",i===k&&k<=4));
+    if(k>=4)$("#flowIn").innerHTML='私は 毎朝 学校で <b class="itc">友達と</b>';else $("#flowIn").innerHTML="私は 毎朝 学校で"}};
+const LN={"毎朝":[10,0,5,0],"放課後":[0,8,3,0],"学校で":[0,5,5,0],"友達と":[0,0,10,0],"数学を":[0,10,0,0]};
+const FL=["朝","勉強","友達","外"];
+S.mix={maxStep:4,init(el){$$(".mixcol",el).forEach(c=>{const ctx=c.dataset.c==="0"?"毎朝":"放課後";
+    c.innerHTML=`<p style="font-size:28px;font-weight:900;margin-bottom:8px">私は <span class="itc">${ctx}</span> 学校で …？</p>
+    <p class="sub stepl" style="font-size:20px;margin-bottom:6px">STEP1「学校で」の数字</p>
+    <div class="fb">${FL.map(()=>`<div class="c"><b></b><i></i></div>`).join("")}</div><div class="fbl">${FL.map(f=>`<span>${f}</span>`).join("")}</div>
+    <div class="bars pb" style="margin-top:14px"></div>`;
+    S.mix.setFb(c,LN["学校で"],true);bars($(".pb",c),[{l:"友達と",v:0,t:""},{l:"数学を",v:0,t:""}],"var(--it)",true)})},
+  setFb(c,vals,inst){$$(".fb .c",c).forEach((x,i)=>{const bar=$("i",x);if(inst)bar.style.transition="none";else bar.style.transition="";bar.style.height=(vals[i]/10*105)+"px";$("b",x).textContent=fmt(vals[i])})},
+  step(k,el,inst){$$(".mixcol",el).forEach(c=>{const ctx=c.dataset.c==="0"?"毎朝":"放課後";
+    const mixed=LN["学校で"].map((t,i)=>t*.5+LN[ctx][i]*.5);
+    if(k===2){S.mix.setFb(c,mixed,inst);$(".stepl",c).innerHTML=`STEP2「${ctx}」を<b>50%</b>混ぜて作り直した「学校で」`;$$(".fb i",c).forEach(i=>i.style.background="var(--it)")}
+    if(k===3){const s=["友達と","数学を"].map(w=>mixed.reduce((a,x,i)=>a+x*LN[w][i],0)),tot=s[0]+s[1],p=s.map(x=>x/tot);
+      bars($(".pb",c),["友達と","数学を"].map((w,i)=>({l:w,v:p[i],t:(p[i]*100).toFixed(1)+"%",top:p[i]>.5})),"var(--q)",inst);
+      $(".pb",c).insertAdjacentHTML("afterbegin",'<p class="sub" style="font-size:20px">STEP3 次の言葉の確率</p>')}})}};
+S.sort={init(){const order=[];const cards=$$("#sCards .scard"),slots=$$("#sSlots .slot");
+  const draw=()=>{slots.forEach((s,i)=>{s.textContent=order[i]||"";s.className="slot"});cards.forEach(c=>c.classList.toggle("used",order.includes(c.dataset.k)));
+    if(order.length===4){const ans=["イ","エ","ウ","ア"];slots.forEach((s,i)=>s.classList.add(order[i]===ans[i]?"good":"bad"))}};
+  cards.forEach(c=>c.onclick=()=>{if(order.length<4&&!order.includes(c.dataset.k)){order.push(c.dataset.k);draw()}});
+  $("#sReset").onclick=()=>{order.length=0;draw()};draw()}};
+
+/* ===================== スライド制御 ===================== */
+const slides=$$(".slide");let cur=-1,step=0;
+function maxStep(s){const id=s.dataset.id;const fs=$$("[data-f]",s).map(e=>+e.dataset.f);return Math.max(0,...fs,(S[id]&&S[id].maxStep)||0)}
+function applyFrags(s){$$("[data-f]",s).forEach(e=>e.classList.toggle("on",+e.dataset.f<=step))}
+function show(n,stp=0,instant=false){n=Math.max(0,Math.min(slides.length-1,n));clearT();
+  slides.forEach((s,i)=>s.classList.toggle("active",i===n));const s=slides[n],id=s.dataset.id;cur=n;step=0;
+  if(instant)$$("[data-f]",s).forEach(e=>e.style.transition="none");
+  applyFrags(s);S[id]?.init?.(s);
+  for(let k=1;k<=stp;k++){step=k;applyFrags(s);S[id]?.step?.(k,s,true)}
+  if(instant)requestAnimationFrame(()=>$$("[data-f]",s).forEach(e=>e.style.transition=""));
+  ui()}
+function next(){const s=slides[cur];if(step<maxStep(s)){step++;applyFrags(s);S[s.dataset.id]?.step?.(step,s,false);ui()}else if(cur<slides.length-1)show(cur+1)}
+function prev(){const s=slides[cur];if(step>0)show(cur,step-1,true);else if(cur>0){const p=slides[cur-1];show(cur-1,maxStep(p),true)}}
+function ui(){$("#pg").textContent=(cur+1)+" / "+slides.length;$("#bar").style.width=((cur+1)/slides.length*100)+"%";
+  try{history.replaceState(null,"","#"+(cur+1))}catch(e){}$$("#menuList a").forEach((a,i)=>a.classList.toggle("cur",i===cur))}
+function fit(){const sc=Math.min(innerWidth/1280,innerHeight/720);$("#stage").style.transform=`scale(${sc})`}
+addEventListener("resize",fit);fit();
+$("#menuList").innerHTML=slides.map((s,i)=>`<li><a href="#${i+1}" data-i="${i}">${i+1}. ${s.dataset.title}</a></li>`).join("");
+$$("#menuList a").forEach(a=>a.onclick=e=>{e.preventDefault();$("#menu").classList.remove("open");show(+a.dataset.i)});
+function toggleFull(){try{document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen()}catch(e){}}
+addEventListener("keydown",e=>{const tg=e.target.tagName;if(tg==="SELECT"||tg==="INPUT"||tg==="TEXTAREA")return;
+  const k=e.key;
+  if(["ArrowRight","PageDown"," ","Enter","ArrowDown"].includes(k)){e.preventDefault();if(tg==="BUTTON")e.target.blur();next()}
+  else if(["ArrowLeft","PageUp","ArrowUp","Backspace"].includes(k)){e.preventDefault();prev()}
+  else if(k==="Home")show(0);else if(k==="End")show(slides.length-1);
+  else if(k==="f"||k==="F")toggleFull();
+  else if(k==="m"||k==="M")$("#menu").classList.toggle("open");
+  else if(k==="b"||k==="B"||k==="."){const b=$("#black");b.style.display=b.style.display==="block"?"none":"block"}
+  else if(k==="Escape")$("#menu").classList.remove("open")});
+$("#bNext").onclick=next;$("#bPrev").onclick=prev;$("#bMenu").onclick=()=>$("#menu").classList.toggle("open");$("#bFull").onclick=toggleFull;
+$("#black").onclick=()=>$("#black").style.display="none";
+const start=parseInt(location.hash.slice(1))||1;show(start-1);
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>show(cur,step,true));
+</script>
+</body>
+</html>
